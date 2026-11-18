@@ -1,0 +1,54 @@
+services:
+  # Backend API
+  - type: web
+    name: reconly-api
+    env: docker
+    region: oregon
+    plan: starter
+    branch: main
+    rootDir: backend
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: reconly-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: reconly-redis
+          property: internalURI
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: DEBUG
+        value: "false"
+      - key: FRONTEND_URL
+        value: https://reconly.onrender.com
+      # You must set these in the Render dashboard:
+      # - SECRET_KEY (generate: python -c "import secrets; print(secrets.token_urlsafe(32))")
+      # - JWT_SECRET_KEY (generate: python -c "import secrets; print(secrets.token_urlsafe(32))")
+      # - STRIPE_SECRET_KEY
+      # - STRIPE_WEBHOOK_SECRET
+
+  # Frontend (static site)
+  - type: web
+    name: reconly-frontend
+    env: docker
+    region: oregon
+    plan: starter
+    branch: main
+    rootDir: frontend
+
+# Database
+  - type: pserv
+    name: reconly-db
+    plan: starter
+    region: oregon
+    ipAllowList: [] # Only allow internal Render connections
+
+# Redis
+  - type: redis
+    name: reconly-redis
+    plan: starter
+    region: oregon
+    ipAllowList: []
