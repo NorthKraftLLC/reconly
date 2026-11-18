@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "inventory-recon"
+version = "0.1.0"
+description = "Inventory Reconciliation SaaS"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "gunicorn",
+    "python-multipart",
+    "python-jose[cryptography]",
+    "passlib[bcrypt]",
+    "pydantic",
+    "pydantic-settings",
+    "sqlalchemy",
+    "asyncpg",
+    "psycopg2-binary",
+    "alembic",
+    "celery[redis]",
+    "redis",
+    "cryptography",
+    "python-dotenv",
+    "slowapi",
+    "bleach",
+    "reportlab",
+    "openpyxl",
+    "ruff",
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+    "coverage",
+    "rapidfuzz",
+    "stripe",
+    "aiosqlite",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+exclude = ["tests*", "alembic*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+select = ["E", "F", "W", "I", "B", "SIM", "UP", "RUF", "PT", "PTH"]
+ignore = ["B008"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+show_error_codes = true
+follow_imports = "normal"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["app/tests"]

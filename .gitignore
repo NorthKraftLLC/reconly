@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.env
+node_modules/
+.DS_Store
+*.egg-info/
+alembic/versions/*.py
+.coverage
+htmlcov/
+venv/
+.venv/
+__pycache__
