@@ -3,12 +3,19 @@
 import traceback
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
 from app.core.security_headers import security_headers_middleware
 from app.db.session import close_engine
+
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
@@ -28,16 +35,44 @@ app = FastAPI(
     title="Inventory Reconciliation SaaS",
     version="1.0.0",
     lifespan=lifespan,
+    docs_url=None,  # Disable docs in production
+    redoc_url=None,
+    openapi_url=None,
 )
 
-# CORS
+# Rate limiter
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Too many requests. Try again later."},
+    )
+
+
+# CORS - restrictive config
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.FRONTEND_URL, "http://localhost:5173", "http://localhost:3000"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
+    max_age=600,
 )
+
+# Request size limit middleware
+@app.middleware("http")
+async def limit_request_size(request: Request, call_next):
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > 10 * 1024 * 1024:  # 10MB limit
+        return JSONResponse(
+            status_code=413,
+            content={"detail": "Request too large. Maximum 10MB."},
+        )
+    return await call_next(request)
+
 
 # Security headers middleware
 app.middleware("http")(security_headers_middleware)
