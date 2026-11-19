@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+// Runtime API URL detection for production (avoids nginx proxy issues on Render)
+const isProd = !import.meta.env.DEV;
+const runtimeBaseUrl = isProd
+  ? 'https://reconly-api.onrender.com/api/v1'
+  : (import.meta.env.VITE_API_URL || '/api/v1');
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api/v1',
+  baseURL: runtimeBaseUrl,
 });
 
 api.interceptors.request.use((config) => {
