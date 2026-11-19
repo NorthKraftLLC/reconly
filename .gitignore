@@ -1,12 +1,43 @@
+# Python
 __pycache__/
-*.pyc
-.env
-node_modules/
-.DS_Store
+*.py[cod]
+*.pyo
+.venv/
 *.egg-info/
-alembic/versions/*.py
+dist/
+build/
+*.egg
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.svelte-kit/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+.env.production
+
+# Testing
 .coverage
 htmlcov/
-venv/
-.venv/
-__pycache__
+.pytest_cache/
+
+# Logs
+*.log
+logs/
+
+# Misc
+fly.toml
+*.rtf
