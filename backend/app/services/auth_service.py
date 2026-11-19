@@ -1,12 +1,10 @@
 """Auth service for user creation, authentication, and token generation."""
 
-from uuid import UUID
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.security import create_access_token, get_password_hash, verify_password
 from app.models.user import User
-from app.core.security import get_password_hash, verify_password, create_access_token
 from app.schemas.user import CreateUser, TokenResponse
 
 

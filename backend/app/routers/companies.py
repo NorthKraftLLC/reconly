@@ -5,18 +5,26 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.audit import log_event
 from app.db.session import get_async_session
-from app.schemas.company import CreateCompany, UpdateCompany, CompanyResponse
-from app.services.company_service import create_company, get_companies, get_company_by_id, update_company, delete_company
 from app.dependencies import get_current_user
 from app.models.user import User
-from app.core.audit import log_event
+from app.schemas.company import CompanyResponse, CreateCompany, UpdateCompany
+from app.services.company_service import (
+    create_company,
+    delete_company,
+    get_companies,
+    get_company_by_id,
+    update_company,
+)
 
 router = APIRouter(prefix="/companies", tags=["companies"])
 
 
 @router.post("/", response_model=CompanyResponse)
-async def create(data: CreateCompany, db: AsyncSession = Depends(get_async_session), user: User = Depends(get_current_user)):
+async def create(
+    data: CreateCompany, db: AsyncSession = Depends(get_async_session), user: User = Depends(get_current_user)
+):
     company = await create_company(db, data.name, data.industry, user)
     log_event(str(user.id), "create_company", str(company.id), "success")
     return company

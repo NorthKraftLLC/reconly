@@ -1,7 +1,5 @@
 """Core matching/reconciliation engine."""
 
-from rapidfuzz import fuzz
-
 
 def reconcile_sources(source_data: dict) -> dict:
     """Core reconciliation engine. Compares system inventory against source data.
@@ -26,16 +24,22 @@ def reconcile_sources(source_data: dict) -> dict:
     for sku, item in source_map.items():
         if sku not in system_map:
             qty = item.get("qty", 0)
-            discrepancies.append({
-                "item_name": item.get("name", sku),
-                "item_sku": sku,
-                "system_quantity": 0,
-                "source_quantity": qty,
-                "quantity_difference": qty,
-                "discrepancy_type": "extra_item",
-                "severity": "high" if qty > 0 else "low",
-                "explanation": f"Item '{item.get('name', sku)}' (SKU: {sku}) exists in source but not in your system. Source shows {qty} units.",
-            })
+            discrepancies.append(
+                {
+                    "item_name": item.get("name", sku),
+                    "item_sku": sku,
+                    "system_quantity": 0,
+                    "source_quantity": qty,
+                    "quantity_difference": qty,
+                    "discrepancy_type": "extra_item",
+                    "severity": "high" if qty > 0 else "low",
+                    "explanation": (
+                        f"Item '{item.get('name', sku)}' (SKU: {sku}) "
+                        f"exists in source but not in your system. "
+                        f"Source shows {qty} units."
+                    ),
+                }
+            )
         else:
             sys_item = system_map[sku]
             sys_qty = sys_item.get("qty", 0)
@@ -44,16 +48,23 @@ def reconcile_sources(source_data: dict) -> dict:
 
             if abs(diff) > 0:
                 severity = "critical" if abs(diff) > 50 else "high" if abs(diff) > 10 else "medium"
-                discrepancies.append({
-                    "item_name": sys_item.get("name", sku),
-                    "item_sku": sku,
-                    "system_quantity": sys_qty,
-                    "source_quantity": src_qty,
-                    "quantity_difference": diff,
-                    "discrepancy_type": "quantity_mismatch",
-                    "severity": severity,
-                    "explanation": f"'{sys_item.get('name', sku)}' (SKU: {sku}): system says {sys_qty}, source says {src_qty}. You're {abs(diff)} units {'short' if diff > 0 else 'over'}.",
-                })
+                discrepancies.append(
+                    {
+                        "item_name": sys_item.get("name", sku),
+                        "item_sku": sku,
+                        "system_quantity": sys_qty,
+                        "source_quantity": src_qty,
+                        "quantity_difference": diff,
+                        "discrepancy_type": "quantity_mismatch",
+                        "severity": severity,
+                        "explanation": (
+                            f"'{sys_item.get('name', sku)}' (SKU: {sku}): "
+                            f"system says {sys_qty}, source says {src_qty}. "
+                            f"You're {abs(diff)} units "
+                            f"{'short' if diff > 0 else 'over'}.",
+                        ),
+                    }
+                )
             else:
                 matched_items += 1
 
@@ -61,16 +72,22 @@ def reconcile_sources(source_data: dict) -> dict:
     for sku, item in system_map.items():
         if sku not in source_map:
             qty = item.get("qty", 0)
-            discrepancies.append({
-                "item_name": item.get("name", sku),
-                "item_sku": sku,
-                "system_quantity": qty,
-                "source_quantity": 0,
-                "quantity_difference": qty,
-                "discrepancy_type": "missing_item",
-                "severity": "high" if qty > 0 else "low",
-                "explanation": f"Item '{item.get('name', sku)}' (SKU: {sku}) is in your system but not in the source file. System shows {qty} units.",
-            })
+            discrepancies.append(
+                {
+                    "item_name": item.get("name", sku),
+                    "item_sku": sku,
+                    "system_quantity": qty,
+                    "source_quantity": 0,
+                    "quantity_difference": qty,
+                    "discrepancy_type": "missing_item",
+                    "severity": "high" if qty > 0 else "low",
+                    "explanation": (
+                        f"Item '{item.get('name', sku)}' (SKU: {sku}) "
+                        f"is in your system but not in the source file. "
+                        f"System shows {qty} units."
+                    ),
+                }
+            )
 
     return {
         "total_items": total_items,

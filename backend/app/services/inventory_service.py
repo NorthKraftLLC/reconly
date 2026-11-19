@@ -5,8 +5,8 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.inventory_item import InventoryItem
 from app.models.company import Company
+from app.models.inventory_item import InventoryItem
 
 
 async def get_company_owned(db: AsyncSession, company_id: UUID, user_id: UUID) -> Company | None:
@@ -42,9 +42,7 @@ async def create_bulk(db: AsyncSession, company_id: UUID, items: list) -> list:
 async def list_items(db: AsyncSession, company_id: UUID, search: str | None = None, category: str | None = None):
     query = select(InventoryItem).where(InventoryItem.company_id == company_id)
     if search:
-        query = query.where(
-            (InventoryItem.name.ilike(f"%{search}%")) | (InventoryItem.sku.ilike(f"%{search}%"))
-        )
+        query = query.where((InventoryItem.name.ilike(f"%{search}%")) | (InventoryItem.sku.ilike(f"%{search}%")))
     if category:
         query = query.where(InventoryItem.category == category)
     query = query.order_by(InventoryItem.name)

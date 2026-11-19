@@ -45,6 +45,8 @@ exclude = ["tests*", "alembic*"]
 [tool.ruff]
 line-length = 120
 target-version = "py312"
+
+[tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "SIM", "UP", "RUF", "PT", "PTH"]
 ignore = ["B008"]
 

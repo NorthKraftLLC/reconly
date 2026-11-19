@@ -2,10 +2,10 @@
 
 import uuid
 
-from sqlalchemy import String, Integer, Numeric, Text, ForeignKey, CheckConstraint, UniqueConstraint, Uuid
+from sqlalchemy import CheckConstraint, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base, UUIDMixin, TimestampMixin
+from app.models.base import Base, TimestampMixin, UUIDMixin
 
 
 class InventoryItem(UUIDMixin, TimestampMixin, Base):

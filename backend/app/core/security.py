@@ -1,6 +1,6 @@
 """Security utilities for password hashing and JWT tokens."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import bcrypt
@@ -16,15 +16,13 @@ def get_password_hash(password: str) -> str:
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return bcrypt.checkpw(
-        plain_password.encode("utf-8"), hashed_password.encode("utf-8")
-    )
+    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
 
 def create_access_token(subject: UUID, expires_delta: timedelta | None = None) -> str:
     if expires_delta is None:
         expires_delta = timedelta(hours=1)
-    expire = datetime.now(timezone.utc) + expires_delta
+    expire = datetime.now(UTC) + expires_delta
     encode_data = {"sub": str(subject), "exp": expire, "iss": "inventory-recon"}
     return jwt.encode(encode_data, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
@@ -51,6 +49,4 @@ def validate_password_strength(password: str) -> bool:
         return False
     if not any(c.isdigit() for c in password):
         return False
-    if not any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in password):
-        return False
-    return True
+    return any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in password)

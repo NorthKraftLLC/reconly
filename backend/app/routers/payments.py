@@ -3,10 +3,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_async_session
-from app.services.stripe_service import create_checkout_session, verify_webhook_signature, handle_customer_subscription
 from app.config import settings
 from app.core.audit import log_event
+from app.db.session import get_async_session
+from app.services.stripe_service import create_checkout_session, handle_customer_subscription, verify_webhook_signature
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -19,7 +19,7 @@ async def checkout(plan_id: str, request: Request):
         session = create_checkout_session(plan_id, success_url, cancel_url)
         return {"url": session.url, "session_id": session.id}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Stripe error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Stripe error: {e!s}") from e
 
 
 @router.post("/webhook")
@@ -28,8 +28,8 @@ async def webhook(request: Request, db: AsyncSession = Depends(get_async_session
     sig_header = request.headers.get("stripe-signature", "")
     try:
         event = verify_webhook_signature(payload, sig_header)
-    except (ValueError, Exception):
-        raise HTTPException(status_code=400, detail="Invalid signature")
+    except (ValueError, Exception) as exc:
+        raise HTTPException(status_code=400, detail="Invalid signature") from exc
 
     if event.type == "customer.subscription.created":
         result = handle_customer_subscription(event)

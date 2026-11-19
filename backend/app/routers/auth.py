@@ -3,12 +3,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.audit import log_event
 from app.db.session import get_async_session
-from app.schemas.user import CreateUser, LoginRequest, TokenResponse, UserResponse
-from app.services.auth_service import create_user, authenticate, create_tokens
 from app.dependencies import get_current_user
 from app.models.user import User
-from app.core.audit import log_event
+from app.schemas.user import CreateUser, LoginRequest, TokenResponse, UserResponse
+from app.services.auth_service import authenticate, create_tokens, create_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -20,7 +20,7 @@ async def register(data: CreateUser, db: AsyncSession = Depends(get_async_sessio
         log_event("anonymous", "register", user.email, "success")
         return user
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=str(e)) from e
 
 
 @router.post("/login", response_model=TokenResponse)

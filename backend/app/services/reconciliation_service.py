@@ -1,16 +1,19 @@
 """Reconciliation service."""
 
+from datetime import UTC
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.reconciliation import Reconciliation, ReconciliationStatus
 from app.models.discrepancy import Discrepancy
+from app.models.reconciliation import Reconciliation, ReconciliationStatus
 from app.services.matching_service import reconcile_sources
 
 
-async def create_reconciliation(db: AsyncSession, company_id: UUID, name: str, source_data: dict, created_by: UUID) -> Reconciliation:
+async def create_reconciliation(
+    db: AsyncSession, company_id: UUID, name: str, source_data: dict, created_by: UUID
+) -> Reconciliation:
     rec = Reconciliation(
         company_id=company_id,
         name=name,
@@ -54,9 +57,7 @@ async def run_reconciliation(db: AsyncSession, rec: Reconciliation) -> Reconcili
 
 async def list_reconciliations(db: AsyncSession, company_id: UUID):
     result = await db.execute(
-        select(Reconciliation)
-        .where(Reconciliation.company_id == company_id)
-        .order_by(Reconciliation.created_at.desc())
+        select(Reconciliation).where(Reconciliation.company_id == company_id).order_by(Reconciliation.created_at.desc())
     )
     return result.scalars().all()
 
@@ -68,22 +69,21 @@ async def get_reconciliation(db: AsyncSession, rec_id) -> Reconciliation | None:
 
 async def get_discrepancies(db: AsyncSession, rec_id):
     result = await db.execute(
-        select(Discrepancy)
-        .where(Discrepancy.reconciliation_id == rec_id)
-        .order_by(Discrepancy.created_at.desc())
+        select(Discrepancy).where(Discrepancy.reconciliation_id == rec_id).order_by(Discrepancy.created_at.desc())
     )
     return result.scalars().all()
 
 
 async def resolve_discrepancy(db: AsyncSession, disc_id, user_id: UUID, notes: str | None = None):
-    from datetime import datetime, timezone
+    from datetime import datetime
+
     result = await db.execute(select(Discrepancy).where(Discrepancy.id == disc_id))
     disc = result.scalar_one_or_none()
     if not disc:
         raise ValueError("Discrepancy not found")
     disc.resolved = True
     disc.resolved_by = user_id
-    disc.resolved_at = str(datetime.now(timezone.utc))
+    disc.resolved_at = str(datetime.now(UTC))
     disc.reviewer_notes = notes
     await db.commit()
     return disc

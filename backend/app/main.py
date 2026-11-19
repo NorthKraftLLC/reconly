@@ -4,10 +4,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
-from app.config import settings
 from app.api.v1.router import v1_router
+from app.config import settings
 from app.core.security_headers import security_headers_middleware
 from app.db.session import close_engine
 

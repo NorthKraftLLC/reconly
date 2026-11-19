@@ -1,15 +1,14 @@
 """Report generation service (PDF, CSV, Excel)."""
 
-from io import BytesIO
 from datetime import datetime
+from io import BytesIO
 
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from openpyxl import Workbook
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from app.models.reconciliation import Reconciliation
-from app.models.discrepancy import Discrepancy
 
 
 def generate_pdf_report(reconciliation: Reconciliation, discrepancies: list) -> bytes:
@@ -65,9 +64,14 @@ def generate_pdf_report(reconciliation: Reconciliation, discrepancies: list) -> 
 
 def generate_csv_report(discrepancies: list) -> bytes:
     buf = BytesIO()
-    buf.write("item_name,sku,system_quantity,source_quantity,difference,type,severity,explanation,resolved\n".encode())
+    buf.write(b"item_name,sku,system_quantity,source_quantity,difference,type,severity,explanation,resolved\n")
     for d in discrepancies:
-        line = f"{d.item_name},{d.item_sku or ''},{d.system_quantity},{d.source_quantity},{d.quantity_difference},{d.discrepancy_type},{d.severity},{d.explanation},{d.resolved}\n"
+        line = (
+            f"{d.item_name},{d.item_sku or ''},"
+            f"{d.system_quantity},{d.source_quantity},"
+            f"{d.quantity_difference},{d.discrepancy_type},"
+            f"{d.severity},{d.explanation},{d.resolved}\n"
+        )
         buf.write(line.encode())
     buf.seek(0)
     return buf.getvalue()
@@ -77,12 +81,23 @@ def generate_excel_report(reconciliation: Reconciliation, discrepancies: list) -
     wb = Workbook()
     ws = wb.active
     ws.title = "Discrepancies"
-    ws.append(["Item Name", "SKU", "System Qty", "Source Qty", "Difference", "Type", "Severity", "Explanation", "Resolved"])
+    ws.append(
+        ["Item Name", "SKU", "System Qty", "Source Qty", "Difference", "Type", "Severity", "Explanation", "Resolved"]
+    )
     for d in discrepancies:
-        ws.append([
-            d.item_name, d.item_sku or "", d.system_quantity, d.source_quantity,
-            d.quantity_difference, d.discrepancy_type, d.severity, d.explanation, d.resolved,
-        ])
+        ws.append(
+            [
+                d.item_name,
+                d.item_sku or "",
+                d.system_quantity,
+                d.source_quantity,
+                d.quantity_difference,
+                d.discrepancy_type,
+                d.severity,
+                d.explanation,
+                d.resolved,
+            ]
+        )
     ws2 = wb.create_sheet("Summary")
     ws2.append(["Field", "Value"])
     ws2.append(["Name", reconciliation.name])

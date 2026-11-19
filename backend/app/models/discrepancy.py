@@ -3,10 +3,10 @@
 import uuid
 from enum import Enum as PyEnum
 
-from sqlalchemy import String, Numeric, Boolean, Text, ForeignKey, Uuid
+from sqlalchemy import Boolean, ForeignKey, Numeric, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base, UUIDMixin, TimestampMixin
+from app.models.base import Base, TimestampMixin, UUIDMixin
 
 
 class DiscrepancyType(PyEnum):
@@ -29,7 +29,9 @@ class Discrepancy(UUIDMixin, TimestampMixin, Base):
 
     reconciliation_id: Mapped[uuid.UUID] = mapped_column(Uuid(), ForeignKey("reconciliations.id", ondelete="CASCADE"))
     company_id: Mapped[uuid.UUID] = mapped_column(Uuid(), ForeignKey("companies.id", ondelete="CASCADE"))
-    inventory_item_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(), ForeignKey("inventory_items.id", ondelete="SET NULL"), nullable=True)
+    inventory_item_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(), ForeignKey("inventory_items.id", ondelete="SET NULL"), nullable=True
+    )
     item_name: Mapped[str] = mapped_column(String(500), nullable=False)
     item_sku: Mapped[str | None] = mapped_column(String(100), nullable=True)
     system_quantity: Mapped[float] = mapped_column(Numeric(15, 2), nullable=False)
