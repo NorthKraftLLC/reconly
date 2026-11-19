@@ -97,15 +97,16 @@ async def health():
 @app.post("/admin/migrate")
 async def run_migrations():
     """Run database migrations (admin only)."""
-    import subprocess
     try:
-        result = subprocess.run(
-            ["alembic", "upgrade", "head"],
-            capture_output=True,
-            text=True,
-            timeout=60,
-            env={**os.environ, "DATABASE_URL": settings.DATABASE_URL}
-        )
-        return {"status": "ok" if result.returncode == 0 else "failed", "output": result.stdout, "error": result.stderr}
+        from sqlalchemy.ext.asyncio import create_async_engine
+        from sqlalchemy import text
+        from app.db.session import get_engine
+        engine = get_engine()
+        # Create all tables directly
+        from app.models.base import Base
+        from app.models import User, Company, InventoryItem, Reconciliation, Discrepancy
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        return {"status": "ok", "message": "All tables created"}
     except Exception as e:
         return {"status": "error", "detail": str(e)}
