@@ -4,11 +4,8 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings
 
-# Find .env file (check current dir, then project root)
+# Local dev only - Docker uses env vars
 _env_path = Path(".env")
-if not _env_path.exists():
-    _project_root = Path(__file__).resolve().parent.parent.parent
-    _env_path = _project_root / ".env"
 
 
 class Settings(BaseSettings):
