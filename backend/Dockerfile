@@ -19,5 +19,7 @@ COPY . ./
 # Expose port
 EXPOSE 10000
 
-# Start uvicorn
-CMD exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}
+# Copy and run startup script
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+CMD ["/start.sh"]
