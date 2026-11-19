@@ -18,5 +18,5 @@ COPY . ./
 # Expose port
 EXPOSE 10000
 
-# Run migrations then start uvicorn
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}"]
+# Start uvicorn (migrations run on first request)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${PORT:-10000}"]
