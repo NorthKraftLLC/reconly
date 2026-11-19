@@ -1,5 +1,6 @@
 """FastAPI application entry point."""
 
+import os
 import traceback
 from contextlib import asynccontextmanager
 
@@ -91,3 +92,20 @@ except Exception as e:
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.post("/admin/migrate")
+async def run_migrations():
+    """Run database migrations (admin only)."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["alembic", "upgrade", "head"],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            env={**os.environ, "DATABASE_URL": settings.DATABASE_URL}
+        )
+        return {"status": "ok" if result.returncode == 0 else "failed", "output": result.stdout, "error": result.stderr}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
