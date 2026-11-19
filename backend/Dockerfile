@@ -6,6 +6,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -18,5 +19,5 @@ COPY . ./
 # Expose port
 EXPOSE 10000
 
-# Start uvicorn (migrations run on first request)
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${PORT:-10000}"]
+# Start uvicorn
+CMD exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}
