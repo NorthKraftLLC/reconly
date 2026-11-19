@@ -56,7 +56,7 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 # CORS - restrictive config
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL, "http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[settings.FRONTEND_URL, "http://localhost:5173", "http://localhost:3000", "https://reconly-frontend.onrender.com"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type", "Accept"],
