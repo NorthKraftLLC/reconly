@@ -4,9 +4,9 @@ from datetime import UTC
 
 from celery import shared_task
 from sqlalchemy import select
+from sqlalchemy.orm import sessionmaker
 
 from app.db.session import get_engine
-from sqlalchemy.orm import sessionmaker
 from app.models.reconciliation import Reconciliation, ReconciliationStatus
 
 
@@ -17,6 +17,7 @@ def process_reconciliation(self, rec_id: str):
 
         async def _run():
             from sqlalchemy.ext.asyncio import AsyncSession
+
             engine = get_engine()
             factory = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
             async with factory() as session:

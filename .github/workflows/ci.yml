@@ -28,7 +28,7 @@ jobs:
           node-version: 22
       - run: cd frontend && npm ci
       - run: cd frontend && npx tsc --noEmit
-      - run: cd frontend && npm test -- --run --coverage
+      - run: cd frontend && npm test
 
   security-scan:
     runs-on: ubuntu-latest

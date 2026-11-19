@@ -10,6 +10,7 @@ def get_engine():
     global _engine
     if _engine is None:
         from sqlalchemy.ext.asyncio import create_async_engine
+
         _engine = create_async_engine(
             settings.DATABASE_URL,
             poolclass=NullPool,
@@ -20,6 +21,7 @@ def get_engine():
 
 async def get_async_session():
     from sqlalchemy.ext.asyncio import AsyncSession
+
     engine = get_engine()
     factory = sessionmaker(
         engine,

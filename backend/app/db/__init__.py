@@ -1,4 +1,4 @@
-from app.db.session import get_async_session, close_engine, get_engine
+from app.db.session import close_engine, get_async_session, get_engine
 from app.models.base import Base
 
-__all__ = ["Base", "get_async_session", "close_engine", "get_engine"]
+__all__ = ["Base", "close_engine", "get_async_session", "get_engine"]

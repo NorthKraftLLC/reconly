@@ -1,8 +1,7 @@
 """FastAPI application entry point."""
 
-from contextlib import asynccontextmanager
 import traceback
-import sys
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,6 +45,7 @@ app.middleware("http")(security_headers_middleware)
 # Mount API router
 try:
     from app.api.v1.router import v1_router
+
     app.include_router(v1_router)
     print("API router mounted", flush=True)
 except Exception as e:
