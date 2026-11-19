@@ -1,36 +1,48 @@
-from contextlib import asynccontextmanager
-
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
 
 from app.config import settings
 
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    pool_size=10,
-    max_overflow=20,
-    pool_timeout=30,
-    pool_recycle=1800,
-    echo=settings.DEBUG,
-)
+_engine = None
 
-async_session = sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+
+def get_engine():
+    global _engine
+    if _engine is None:
+        from sqlalchemy.ext.asyncio import create_async_engine
+        _engine = create_async_engine(
+            settings.DATABASE_URL,
+            poolclass=NullPool,
+            echo=settings.DEBUG,
+        )
+    return _engine
 
 
 async def get_async_session():
-    async with async_session() as session:
-        yield session
-
-
-@asynccontextmanager
-async def get_session():
-    async with async_session() as session:
-        yield session
+    from sqlalchemy.ext.asyncio import AsyncSession
+    engine = get_engine()
+    factory = sessionmaker(
+        engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+    async with factory() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
 
 
 async def close_engine():
-    await engine.dispose()
+    global _engine
+    if _engine:
+        await _engine.dispose()
+        _engine = None
+
+
+# For celery tasks
+async_session = None  # Use get_engine() + sessionmaker() directly in tasks

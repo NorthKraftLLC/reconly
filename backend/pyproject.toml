@@ -16,7 +16,7 @@ dependencies = [
     "passlib[bcrypt]",
     "pydantic",
     "pydantic-settings",
-    "sqlalchemy",
+    "sqlalchemy[asyncio]",
     "asyncpg",
     "psycopg2-binary",
     "alembic",

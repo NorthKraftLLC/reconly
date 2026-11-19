@@ -1,11 +1,12 @@
 """FastAPI application entry point."""
 
 from contextlib import asynccontextmanager
+import traceback
+import sys
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1.router import v1_router
 from app.config import settings
 from app.core.security_headers import security_headers_middleware
 from app.db.session import close_engine
@@ -13,8 +14,15 @@ from app.db.session import close_engine
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    yield
-    await close_engine()
+    try:
+        print("App starting up...", flush=True)
+        yield
+        print("App shutting down...", flush=True)
+        await close_engine()
+    except Exception as e:
+        print(f"Lifespan error: {e}", flush=True)
+        traceback.print_exc()
+        raise
 
 
 app = FastAPI(
@@ -36,7 +44,13 @@ app.add_middleware(
 app.middleware("http")(security_headers_middleware)
 
 # Mount API router
-app.include_router(v1_router)
+try:
+    from app.api.v1.router import v1_router
+    app.include_router(v1_router)
+    print("API router mounted", flush=True)
+except Exception as e:
+    print(f"Failed to mount API router: {e}", flush=True)
+    traceback.print_exc()
 
 
 @app.get("/health")
