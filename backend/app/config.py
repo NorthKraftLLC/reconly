@@ -10,6 +10,14 @@ _env_path = Path(".env")
 
 class Settings(BaseSettings):
     DATABASE_URL: str
+
+    @property
+    def DATABASE_URL_ASYNC(self) -> str:
+        """Convert postgresql:// to postgresql+asyncpg:// for async driver."""
+        url = self.DATABASE_URL
+        if url.startswith("postgresql://") and "+asyncpg" not in url:
+            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
     SECRET_KEY: str
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"

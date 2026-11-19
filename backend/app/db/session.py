@@ -12,7 +12,7 @@ def get_engine():
         from sqlalchemy.ext.asyncio import create_async_engine
 
         _engine = create_async_engine(
-            settings.DATABASE_URL,
+            settings.DATABASE_URL_ASYNC,
             poolclass=NullPool,
             echo=settings.DEBUG,
         )
