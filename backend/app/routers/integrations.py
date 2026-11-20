@@ -121,16 +121,22 @@ async def trigger_sync(
     user: User = Depends(get_current_user),
 ):
     """Trigger a manual sync for a connection."""
-    conn = await db.execute(select(Connection).where(Connection.id == UUID(connection_id)))
-    connection = conn.scalar_one_or_none()
-    if not connection:
-        raise HTTPException(status_code=404, detail="Connection not found")
+    try:
+        conn = await db.execute(select(Connection).where(Connection.id == UUID(connection_id)))
+        connection = conn.scalar_one_or_none()
+        if not connection:
+            raise HTTPException(status_code=404, detail="Connection not found")
+        if not await get_company_owned(db, connection.company_id, user.id):
+            raise HTTPException(status_code=403, detail="Access denied")
 
-    # Read config via SQLAlchemy select (bypasses the loaded object's async JSON proxy)
-    config_result = await db.execute(select(Connection.config).where(Connection.id == conn_uuid))
-    connection_config = config_result.scalar_one_or_none() or {}
-    sync_log = await sync_connection(db, connection, connection_config)
-    log_event(str(user.id), "sync_connection", connection_id, sync_log.status.value)
+        # Materialize config by JSON round-trip to break SQLAlchemy async proxy
+        import json as _json
+        connection_config = _json.loads(_json.dumps(connection.config)) if connection.config else {}
+        sync_log = await sync_connection(db, connection, connection_config)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     return {
         "sync_id": str(sync_log.id),
         "status": sync_log.status.value,
