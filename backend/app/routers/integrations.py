@@ -129,10 +129,17 @@ async def trigger_sync(
         if not await get_company_owned(db, connection.company_id, user.id):
             raise HTTPException(status_code=403, detail="Access denied")
 
-        # Force config materialization: use expire_on_commit=False + refresh
-        await db.refresh(connection)
-        # Now access config — with expire_on_commit=False it should be cached
-        connection_config = dict(connection.config) if connection.config else {}
+        # Bypass SQLAlchemy entirely: read config via raw asyncpg cursor
+        from app.db.session import get_engine
+        engine = get_engine()
+        async with engine.connect() as raw_conn:
+            from sqlalchemy import text as _text
+            result = await raw_conn.execute(
+                _text("SELECT config FROM connections WHERE id = :id"),
+                {"id": str(UUID(connection_id))}
+            )
+            row = result.fetchone()
+            connection_config = dict(row[0]) if row and row[0] else {}
         sync_log = await sync_connection(db, connection, connection_config)
     except HTTPException:
         raise
