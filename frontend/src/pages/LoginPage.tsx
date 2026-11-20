@@ -19,8 +19,13 @@ export default function LoginPage() {
       } else {
         await login(email, password);
       }
-    } catch {
-      setError(isRegister ? 'Registration failed. Please try again.' : 'Invalid credentials. Please check your email and password.');
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail || err?.message || 'Something went wrong.';
+      if (Array.isArray(detail)) {
+        setError(detail.map(d => d.msg || d).join(' '));
+      } else {
+        setError(detail);
+      }
     } finally {
       setLoading(false);
     }

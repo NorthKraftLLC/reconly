@@ -29,17 +29,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const setAuth = (tokens: { access_token: string; refresh_token: string }) => {
+    localStorage.setItem('access_token', tokens.access_token);
+    localStorage.setItem('refresh_token', tokens.refresh_token);
+    api.get('/auth/me').then((res) => setUser(res.data));
+  };
+
   const login = async (email: string, password: string) => {
     const res = await api.post('/auth/login', { email, password });
-    localStorage.setItem('access_token', res.data.access_token);
-    localStorage.setItem('refresh_token', res.data.refresh_token);
-    const userRes = await api.get('/auth/me');
-    setUser(userRes.data);
+    setAuth(res.data);
   };
 
   const register = async (email: string, password: string, first_name?: string, last_name?: string) => {
-    await api.post('/auth/register', { email, password, first_name, last_name });
-    await login(email, password);
+    const res = await api.post('/auth/register', { email, password, first_name, last_name });
+    // Register now returns tokens directly — no second login call needed
+    setAuth(res.data);
   };
 
   const logout = () => {

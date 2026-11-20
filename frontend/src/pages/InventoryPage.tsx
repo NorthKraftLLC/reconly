@@ -14,8 +14,11 @@ export default function InventoryPage() {
   const [cost, setCost] = useState('');
   const [category, setCategory] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [showBulk, setShowBulk] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [bulkLoading, setBulkLoading] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [bulkCsv, setBulkCsv] = useState('');
 
   const fetchCompanies = async () => {
     const res = await api.get('/companies/');
@@ -59,18 +62,76 @@ export default function InventoryPage() {
     }
   };
 
+  const bulkUpload = async () => {
+    if (!bulkCsv.trim()) return;
+    setBulkLoading(true);
+    setFeedback('');
+    try {
+      const lines = bulkCsv.trim().split('\n').map(l => l.trim()).filter(Boolean);
+      if (lines.length < 2) throw new Error('CSV needs a header row and at least one data row');
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z_]/g, ''));
+      const items = lines.slice(1).map(line => {
+        const vals = line.split(',').map(v => v.trim());
+        const obj: any = {};
+        headers.forEach((h, i) => {
+          if (h === 'sku') obj.sku = vals[i];
+          else if (h === 'name') obj.name = vals[i];
+          else if (h === 'quantity' || h === 'quantity_on_hand') obj.quantity_on_hand = parseInt(vals[i]) || 0;
+          else if (h === 'price' || h === 'unit_cost') obj.unit_cost = parseFloat(vals[i]) || 0;
+          else if (h === 'category') obj.category = vals[i];
+        });
+        return obj;
+      }).filter(i => i.sku && i.name);
+      const res = await api.post(`/inventory/bulk?company_id=${selectedCompany}`, items);
+      setFeedback(`Bulk upload complete: ${res.data?.length || items.length} items imported`);
+      setBulkCsv('');
+      setShowBulk(false);
+      fetchItems();
+      setTimeout(() => setFeedback(''), 5000);
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail || err?.message || 'Bulk upload failed';
+      setFeedback(Array.isArray(detail) ? detail.map((d: any) => d.msg || d).join(' ') : detail);
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setBulkCsv(ev.target?.result as string);
+    reader.readAsText(file);
+  };
+
   return (
     <>
       <Header
         title="Inventory"
         actions={
           selectedCompany && (
-            <button className="btn-primary" onClick={() => setShowForm(!showForm)}>
-              {showForm ? 'Cancel' : '+ Add Item'}
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button className="btn-secondary" onClick={() => setShowBulk(!showBulk)} style={{ whiteSpace: 'nowrap' }}>
+                📦 Bulk Upload
+              </button>
+              <button className="btn-primary" onClick={() => setShowForm(!showForm)}>
+                {showForm ? 'Cancel' : '+ Add Item'}
+              </button>
+            </div>
           )
         }
       />
+
+      {/* Feedback Banner */}
+      {feedback && (
+        <div style={{
+          padding: '0.75rem 1rem', marginBottom: '1rem', borderRadius: '8px',
+          background: feedback.includes('complete') || feedback.includes('success') ? 'rgba(13, 204, 175, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+          border: `1px solid ${feedback.includes('complete') || feedback.includes('success') ? 'var(--turquoise-dark)' : 'var(--danger)'}`,
+          color: feedback.includes('complete') || feedback.includes('success') ? 'var(--turquoise-dark)' : 'var(--danger)',
+          fontSize: '0.85rem', fontWeight: 600,
+        }}>{feedback}</div>
+      )}
 
       {/* Company Selector */}
       <div style={{ marginBottom: '1.25rem' }}>
@@ -120,6 +181,40 @@ export default function InventoryPage() {
                 color: feedback.includes('success') ? 'var(--turquoise-dark)' : 'var(--danger)',
               }}>{feedback}</span>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Upload Modal */}
+      {showBulk && selectedCompany && (
+        <div className="card mb-lg" style={{ padding: '1.25rem', border: '1px solid var(--turquoise-dark)' }}>
+          <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>📦 Bulk Upload Inventory</h3>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+            Paste CSV data or upload a .csv file. Format: <code style={{ fontSize: '0.75rem' }}>sku,name,quantity,price[,category]</code>
+          </p>
+          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', alignItems: 'center' }}>
+            <label className="btn-secondary" style={{ cursor: 'pointer', display: 'inline-block', padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+              📁 Choose CSV File
+              <input type="file" accept=".csv,.txt" onChange={handleFileUpload} style={{ display: 'none' }} />
+            </label>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>or paste below</span>
+          </div>
+          <textarea
+            placeholder={"sku,name,quantity,price,category\nWDG-001,Widget Alpha,500,12.99,Widgets\nWDG-002,Widget Beta,300,8.49,Widgets"}
+            value={bulkCsv}
+            onChange={(e) => setBulkCsv(e.target.value)}
+            style={{
+              width: '100%', minHeight: '150px', fontFamily: 'SF Mono, Fira Code, monospace',
+              fontSize: '0.8rem', padding: '0.75rem', marginBottom: '0.75rem', resize: 'vertical',
+              background: 'var(--bg)', color: 'var(--text-primary)', borderRadius: '8px',
+              border: '1px solid var(--card-border)',
+            }}
+          />
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <button className="btn-primary" onClick={bulkUpload} disabled={bulkLoading || !bulkCsv.trim()}>
+              {bulkLoading ? 'Uploading...' : 'Upload'}
+            </button>
+            <button className="btn-secondary" onClick={() => { setShowBulk(false); setBulkCsv(''); }}>Cancel</button>
           </div>
         </div>
       )}

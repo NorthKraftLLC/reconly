@@ -23,13 +23,14 @@ def sanitize_input(value: str) -> str:
 
 
 @limiter.limit("5/minute")
-@router.post("/register", response_model=UserResponse)
+@router.post("/register", response_model=TokenResponse)
 async def register(request: Request, data: CreateUser, db: AsyncSession = Depends(get_async_session)):
     try:
         data.email = sanitize_input(data.email)
         user = await create_user(db, data)
+        tokens = await create_tokens(user)
         log_event(str(user.id), "register", user.email, "success", ip_address=get_remote_address(request))
-        return user
+        return tokens
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
 
