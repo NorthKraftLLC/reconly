@@ -1,5 +1,6 @@
 """Integrations/Connections router for managing data sources."""
 
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
@@ -92,11 +93,13 @@ async def test_connection(
     user: User = Depends(get_current_user),
 ):
     """Test if a connection's credentials are valid."""
-    conn = await db.execute(select(Connection).where(Connection.id == connection_id))
+    conn_uuid = UUID(connection_id)
+    conn = await db.execute(select(Connection).where(Connection.id == conn_uuid))
     connection = conn.scalar_one_or_none()
     if not connection:
         raise HTTPException(status_code=404, detail="Connection not found")
 
+    logger.info(f"Testing connection {connection.id}, type={connection.connection_type}, config_keys={list(connection.config.keys())}")
     connector = get_connector(connection.connection_type)
     result = await connector.test_connection(connection.credentials, connection.config)
     return {"ok": result["ok"], "message": result["message"], "detail": result.get("detail")}
@@ -109,11 +112,13 @@ async def trigger_sync(
     user: User = Depends(get_current_user),
 ):
     """Trigger a manual sync for a connection."""
-    conn = await db.execute(select(Connection).where(Connection.id == connection_id))
+    conn_uuid = UUID(connection_id)
+    conn = await db.execute(select(Connection).where(Connection.id == conn_uuid))
     connection = conn.scalar_one_or_none()
     if not connection:
         raise HTTPException(status_code=404, detail="Connection not found")
 
+    logger.info(f"Syncing connection {connection.id}, config has csv_data: {'csv_data' in (connection.config or {})}, csv_data len: {len(connection.config.get('csv_data', [])) if connection.config else 0}")
     sync_log = await sync_connection(db, connection)
     log_event(str(user.id), "sync_connection", connection_id, sync_log.status.value)
     return {
@@ -135,7 +140,8 @@ async def upload_csv(
     user: User = Depends(get_current_user),
 ):
     """Upload a CSV file to a CSV import connection."""
-    conn = await db.execute(select(Connection).where(Connection.id == connection_id))
+    conn_uuid = UUID(connection_id)
+    conn = await db.execute(select(Connection).where(Connection.id == conn_uuid))
     connection = conn.scalar_one_or_none()
     if not connection:
         raise HTTPException(status_code=404, detail="Connection not found")
@@ -144,9 +150,9 @@ async def upload_csv(
 
     content = await file.read()
     items = CSVConnector.parse_csv_bytes(content)
-    connection.config["csv_data"] = items
-    connection.config["filename"] = file.filename
+    connection.config = {**connection.config, "csv_data": items, "filename": file.filename}
     await db.commit()
+    logger.info(f"CSV uploaded to connection {connection.id}: {len(items)} items")
 
     return {"items_parsed": len(items), "preview": items[:5]}
 
@@ -188,7 +194,8 @@ async def delete_connection(
     user: User = Depends(get_current_user),
 ):
     """Delete a connection."""
-    conn = await db.execute(select(Connection).where(Connection.id == connection_id))
+    conn_uuid = UUID(connection_id)
+    conn = await db.execute(select(Connection).where(Connection.id == conn_uuid))
     connection = conn.scalar_one_or_none()
     if not connection:
         raise HTTPException(status_code=404, detail="Connection not found")

@@ -433,8 +433,11 @@ async def sync_connection(db: AsyncSession, connection: Connection) -> SyncLog:
 
     try:
         connector = get_connector(connection.connection_type)
+        logger.info(f"Fetching inventory from connection {connection.id}, type={connection.connection_type}")
         raw_items = await connector.fetch_inventory(connection)
+        logger.info(f"Fetched {len(raw_items)} raw items")
         normalized = connector.normalize_items(raw_items)
+        logger.info(f"Normalized {len(normalized)} items")
 
         sync_log.items_fetched = len(raw_items)
         sync_log.raw_data_preview = raw_items[:5] if raw_items else None
@@ -444,6 +447,7 @@ async def sync_connection(db: AsyncSession, connection: Connection) -> SyncLog:
         updated = 0
         failed = 0
 
+        logger.info(f"Starting upsert loop, company_id={connection.company_id}")
         for item in normalized:
             try:
                 # Check if item exists by SKU + company
