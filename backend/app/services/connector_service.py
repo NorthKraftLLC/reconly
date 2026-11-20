@@ -435,11 +435,13 @@ async def sync_connection(db: AsyncSession, connection: Connection, config_overr
     await db.flush()
 
     try:
-        connector = get_connector(connection.connection_type)
-        logger.info(f"[1] Fetching from connection {connection.id}, type={connection.connection_type}")
+        # CRITICAL: materialize connection_type enum value from SQLAlchemy async proxy
+        conn_type = connection.connection_type.value if hasattr(connection.connection_type, 'value') else connection.connection_type
+        connector = get_connector(conn_type)
+        logger.info(f"[1] Fetching from connection {connection.id}, type={conn_type}")
         logger.info(f"[1] config_override type={type(config_override)}, keys={list(config_override.keys()) if isinstance(config_override, dict) else 'N/A'}")
         # For CSV imports, use the pre-loaded config to avoid SQLAlchemy async JSON issues
-        if connection.connection_type == ConnectionType.CSV_IMPORT and config_override:
+        if conn_type == ConnectionType.CSV_IMPORT and config_override:
             raw_items = list(config_override.get("csv_data", []))
         else:
             raw_items = await connector.fetch_inventory(connection)
