@@ -98,15 +98,46 @@ async def health():
 async def run_migrations():
     """Run database migrations (admin only)."""
     try:
-        from sqlalchemy.ext.asyncio import create_async_engine
         from sqlalchemy import text
         from app.db.session import get_engine
         engine = get_engine()
-        # Create all tables directly
+        # Create all tables
         from app.models.base import Base
         from app.models import User, Company, InventoryItem, Reconciliation, Discrepancy, Connection, SyncLog
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        return {"status": "ok", "message": "All tables created"}
+
+        # Add owner_id column to companies if it doesn't exist (migration)
+        async with engine.begin() as conn:
+            await conn.execute(text("""
+                DO $$ BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='companies' AND column_name='owner_id') THEN
+                        ALTER TABLE companies ADD COLUMN owner_id UUID NOT NULL DEFAULT gen_random_uuid();
+                    END IF;
+                END $$;
+            """))
+
+        # Create a bypass role for admin operations (health checks, migrations)
+        async with engine.begin() as conn:
+            await conn.execute(text("""
+                DO $$ BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'rls_bypass') THEN
+                        CREATE ROLE rls_bypass;
+                    END IF;
+                END $$;
+            """))
+
+        # Apply Row-Level Security policies
+        from app.core.rls import apply_rls_policies
+        from sqlalchemy.ext.asyncio import AsyncSession
+        from sqlalchemy.orm import sessionmaker
+        Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        async with Session() as db:
+            # Temporarily disable RLS for migration setup
+            await db.execute(text("SET row_security = off"))
+            await apply_rls_policies(db)
+            await db.execute(text("SET row_security = on"))
+
+        return {"status": "ok", "message": "All tables created, RLS policies applied"}
     except Exception as e:
         return {"status": "error", "detail": str(e)}

@@ -13,8 +13,8 @@ from app.schemas.company import CompanyResponse, CreateCompany, UpdateCompany
 from app.services.company_service import (
     create_company,
     delete_company,
-    get_companies,
     get_company_by_id,
+    get_companies,
     update_company,
 )
 
@@ -37,28 +37,28 @@ async def list_companies(db: AsyncSession = Depends(get_async_session), user: Us
 
 
 @router.get("/{id}", response_model=CompanyResponse)
-async def get(id: UUID, db: AsyncSession = Depends(get_async_session)):
-    company = await get_company_by_id(db, id)
+async def get(id: UUID, db: AsyncSession = Depends(get_async_session), user: User = Depends(get_current_user)):
+    company = await get_company_by_id(db, id, user.id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
     return company
 
 
 @router.patch("/{id}", response_model=CompanyResponse)
-async def patch(id: UUID, data: UpdateCompany, db: AsyncSession = Depends(get_async_session)):
-    company = await get_company_by_id(db, id)
+async def patch(id: UUID, data: UpdateCompany, db: AsyncSession = Depends(get_async_session), user: User = Depends(get_current_user)):
+    company = await get_company_by_id(db, id, user.id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
     updated = await update_company(db, company, data.model_dump(exclude_unset=True))
-    log_event("system", "update_company", str(id), "success")
+    log_event(str(user.id), "update_company", str(id), "success")
     return updated
 
 
 @router.delete("/{id}")
-async def delete(id: UUID, db: AsyncSession = Depends(get_async_session)):
-    company = await get_company_by_id(db, id)
+async def delete(id: UUID, db: AsyncSession = Depends(get_async_session), user: User = Depends(get_current_user)):
+    company = await get_company_by_id(db, id, user.id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
     await delete_company(db, company)
-    log_event("system", "delete_company", str(id), "success")
+    log_event(str(user.id), "delete_company", str(id), "success")
     return {"status": "deleted"}

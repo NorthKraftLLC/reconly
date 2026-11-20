@@ -10,7 +10,13 @@ from app.models.inventory_item import InventoryItem
 
 
 async def get_company_owned(db: AsyncSession, company_id: UUID, user_id: UUID) -> Company | None:
-    result = await db.execute(select(Company).where(Company.id == company_id))
+    """Only return company if it belongs to this user. Critical for tenant isolation."""
+    result = await db.execute(
+        select(Company).where(
+            Company.id == company_id,
+            Company.owner_id == user_id,
+        )
+    )
     return result.scalar_one_or_none()
 
 

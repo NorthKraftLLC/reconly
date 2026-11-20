@@ -1,7 +1,7 @@
 """Company service."""
 
 import re
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,20 +18,28 @@ def generate_slug(name: str) -> str:
 
 async def create_company(db: AsyncSession, name: str, industry: str | None, user: User) -> Company:
     slug = generate_slug(name)
-    company = Company(name=name, slug=slug, industry=industry)
+    company = Company(name=name, slug=slug, industry=industry, owner_id=user.id)
     db.add(company)
-    await db.commit()
+    await db.flush()
     await db.refresh(company)
     return company
 
 
 async def get_companies(db: AsyncSession, user: User):
-    result = await db.execute(select(Company).where(Company.is_active.is_(True)).order_by(Company.created_at.desc()))
+    """Only return companies owned by this user."""
+    result = await db.execute(
+        select(Company)
+        .where(Company.owner_id == user.id, Company.is_active.is_(True))
+        .order_by(Company.created_at.desc())
+    )
     return result.scalars().all()
 
 
-async def get_company_by_id(db: AsyncSession, company_id) -> Company | None:
-    result = await db.execute(select(Company).where(Company.id == company_id))
+async def get_company_by_id(db: AsyncSession, company_id: UUID, user_id: UUID) -> Company | None:
+    """Only return company if owned by this user."""
+    result = await db.execute(
+        select(Company).where(Company.id == company_id, Company.owner_id == user_id)
+    )
     return result.scalar_one_or_none()
 
 
@@ -39,13 +47,13 @@ async def update_company(db: AsyncSession, company: Company, data: dict) -> Comp
     for key, value in data.items():
         if value is not None and key in ("name", "industry", "is_active"):
             setattr(company, key, value)
-    await db.commit()
+    await db.flush()
     await db.refresh(company)
     return company
 
 
 async def delete_company(db: AsyncSession, company: Company) -> Company:
     company.is_active = False
-    await db.commit()
+    await db.flush()
     await db.refresh(company)
     return company

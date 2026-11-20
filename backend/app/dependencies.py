@@ -1,5 +1,6 @@
 """FastAPI dependencies for authentication."""
 
+from sqlalchemy import text
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
@@ -24,4 +25,9 @@ async def get_current_user(
     user = result.scalar_one_or_none()
     if user is None or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+    
+    # Set PostgreSQL session variable for Row-Level Security
+    # This ensures RLS policies can identify the current tenant
+    await db.execute(text(f"SET app.current_user_id = '{user.id}'"))
+    
     return user

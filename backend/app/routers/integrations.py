@@ -14,6 +14,7 @@ from app.dependencies import get_current_user
 from app.models.connection import Connection, ConnectionType, ConnectionRole
 from app.models.sync_log import SyncLog
 from app.models.user import User
+from app.services.inventory_service import get_company_owned
 from app.services.connector_service import (
     get_connector,
     sync_connection,
@@ -40,8 +41,16 @@ async def get_connector_types():
 
 @router.get("/")
 async def list_connections(db: AsyncSession = Depends(get_async_session), user: User = Depends(get_current_user)):
-    """List all connections for the current user's companies."""
-    connections = await db.execute(select(Connection).order_by(Connection.created_at.desc()))
+    """List all connections for the current user's companies only."""
+    # Get user's company IDs
+    from app.models.company import Company
+    user_companies = await db.execute(select(Company.id).where(Company.owner_id == user.id))
+    company_ids = [c[0] for c in user_companies.all()]
+    if not company_ids:
+        return []
+    connections = await db.execute(
+        select(Connection).where(Connection.company_id.in_(company_ids)).order_by(Connection.created_at.desc())
+    )
     return connections.scalars().all()
 
 
@@ -65,6 +74,11 @@ async def create_connection(
         company_uuid = UUID(company_id)
     except (ValueError, json_mod.JSONDecodeError) as e:
         raise HTTPException(status_code=400, detail=f"Invalid input: {e}")
+
+    # Verify user owns the company
+    company = await get_company_owned(db, company_uuid, user.id)
+    if not company:
+        raise HTTPException(status_code=403, detail="Company not found or access denied")
 
     connection = Connection(
         name=name,
@@ -92,6 +106,8 @@ async def test_connection(
     connection = conn.scalar_one_or_none()
     if not connection:
         raise HTTPException(status_code=404, detail="Connection not found")
+    if not await get_company_owned(db, connection.company_id, user.id):
+        raise HTTPException(status_code=403, detail="Access denied")
 
     connector = get_connector(connection.connection_type)
     result = await connector.test_connection(connection.credentials, connection.config)
