@@ -372,6 +372,7 @@ async def sync_connection(db: AsyncSession, connection: Connection) -> SyncLog:
         imported = updated = failed = 0
         conn_id_str = str(connection.id)
 
+        first_error = None
         for item in normalized:
             try:
                 existing = await db.execute(
@@ -396,12 +397,16 @@ async def sync_connection(db: AsyncSession, connection: Connection) -> SyncLog:
                     ))
                     imported += 1
             except Exception as e:
+                if first_error is None:
+                    first_error = f"{type(e).__name__}: {e}"
                 logger.error(f"Failed to import item {item.get('sku')}: {e}")
                 failed += 1
 
         sync_log.items_imported = imported
         sync_log.items_updated = updated
         sync_log.items_failed = failed
+        if first_error:
+            sync_log.error_message = first_error
         sync_log.status = SyncStatus.SUCCESS if failed == 0 else (
             SyncStatus.PARTIAL if imported + updated > 0 else SyncStatus.FAILED)
         sync_log.completed_at = datetime.now(UTC).isoformat()
