@@ -435,8 +435,9 @@ async def sync_connection(db: AsyncSession, connection: Connection, config_overr
     await db.flush()
 
     try:
-        # Bypass enum entirely: get type as string, map to connector class directly
-        type_str = str(connection.connection_type)  # Force string conversion
+        # Bypass enum entirely: get type as string, extract just the value part
+        type_full = str(connection.connection_type)  # "ConnectionType.CSV_IMPORT"
+        type_str = type_full.split(".")[-1].lower() if "." in type_full else type_full.lower()  # "csv_import"
         # Map string to connector class
         TYPE_TO_CLASS = {
             "csv_import": CSVConnector,
