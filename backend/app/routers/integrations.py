@@ -75,8 +75,8 @@ async def create_connection(
         config=cfg,
     )
     db.add(connection)
-    # No explicit commit — get_async_session auto-commits
-    await db.refresh(connection)
+    await db.flush()  # Assign ID without committing
+    await db.refresh(connection)  # Refresh with DB-generated values
     log_event(str(user.id), "create_connection", str(connection.id), "success")
     return {"id": str(connection.id), "name": connection.name, "type": connection.connection_type.value, "role": connection.role.value}
 
