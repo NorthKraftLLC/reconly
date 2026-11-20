@@ -70,10 +70,13 @@ class CSVConnector(BaseConnector):
 
     async def fetch_inventory(self, connection: Connection) -> list[dict]:
         # CSV data is stored in config['csv_data'] after upload
-        raw = connection.config.get("csv_data", [])
+        # Force materialization: dict() ensures we get a plain Python dict,
+        # not a SQLAlchemy lazy proxy that might cause async issues
+        config = dict(connection.config) if connection.config else {}
+        raw = config.get("csv_data", [])
         if isinstance(raw, str):
             raw = json.loads(raw)
-        return raw if isinstance(raw, list) else []
+        return list(raw) if isinstance(raw, list) else []
 
     async def test_connection(self, credentials: dict, config: dict) -> dict:
         raw = config.get("csv_data", [])
