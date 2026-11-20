@@ -68,14 +68,15 @@ async def create_connection(
         conn_role = ConnectionRole(role)
         creds = json_mod.loads(credentials)
         cfg = json_mod.loads(config)
+        company_uuid = UUID(company_id)
     except (ValueError, json_mod.JSONDecodeError) as e:
-        raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}")
+        raise HTTPException(status_code=400, detail=f"Invalid input: {e}")
 
     connection = Connection(
         name=name,
         connection_type=conn_type,
         role=conn_role,
-        company_id=company_id,
+        company_id=company_uuid,
         credentials=creds,
         config=cfg,
     )
@@ -150,7 +151,10 @@ async def upload_csv(
 
     content = await file.read()
     items = CSVConnector.parse_csv_bytes(content)
-    connection.config = {**connection.config, "csv_data": items, "filename": file.filename}
+    current_config = dict(connection.config) if connection.config else {}
+    current_config["csv_data"] = items
+    current_config["filename"] = file.filename or "upload.csv"
+    connection.config = current_config
     await db.commit()
     logger.info(f"CSV uploaded to connection {connection.id}: {len(items)} items")
 
