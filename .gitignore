@@ -41,3 +41,6 @@ logs/
 # Misc
 fly.toml
 *.rtf
+
+# Generated data
+synthetic_data/
