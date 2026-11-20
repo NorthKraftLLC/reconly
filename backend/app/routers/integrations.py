@@ -129,9 +129,11 @@ async def trigger_sync(
         if not await get_company_owned(db, connection.company_id, user.id):
             raise HTTPException(status_code=403, detail="Access denied")
 
-        # Materialize config by JSON round-trip to break SQLAlchemy async proxy
-        import json as _json
-        connection_config = _json.loads(_json.dumps(connection.config)) if connection.config else {}
+        # Load config as a plain scalar to FORCE materialization
+        cfg_result = await db.execute(
+            select(Connection.config.cast(dict)).where(Connection.id == UUID(connection_id))
+        )
+        connection_config = cfg_result.scalar() or {}
         sync_log = await sync_connection(db, connection, connection_config)
     except HTTPException:
         raise
