@@ -36,24 +36,19 @@ app = FastAPI(
     title="Inventory Reconciliation SaaS",
     version="1.0.0",
     lifespan=lifespan,
-    docs_url=None,  # Disable docs in production
+    docs_url=None,
     redoc_url=None,
     openapi_url=None,
 )
 
-# Rate limiter
 app.state.limiter = limiter
 
 
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
-    return JSONResponse(
-        status_code=429,
-        content={"detail": "Too many requests. Try again later."},
-    )
+    return JSONResponse(status_code=429, content={"detail": "Too many requests. Try again later."})
 
 
-# CORS - restrictive config
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.FRONTEND_URL, "http://localhost:5173", "http://localhost:3000", "https://reconly-frontend.onrender.com"],
@@ -63,25 +58,19 @@ app.add_middleware(
     max_age=600,
 )
 
-# Request size limit middleware
+
 @app.middleware("http")
 async def limit_request_size(request: Request, call_next):
     content_length = request.headers.get("content-length")
-    if content_length and int(content_length) > 10 * 1024 * 1024:  # 10MB limit
-        return JSONResponse(
-            status_code=413,
-            content={"detail": "Request too large. Maximum 10MB."},
-        )
+    if content_length and int(content_length) > 10 * 1024 * 1024:
+        return JSONResponse(status_code=413, content={"detail": "Request too large. Maximum 10MB."})
     return await call_next(request)
 
 
-# Security headers middleware
 app.middleware("http")(security_headers_middleware)
 
-# Mount API router
 try:
     from app.api.v1.router import v1_router
-
     app.include_router(v1_router)
     print("API router mounted", flush=True)
 except Exception as e:
@@ -101,43 +90,26 @@ async def run_migrations():
         from sqlalchemy import text
         from app.db.session import get_engine
         engine = get_engine()
+
         # Create all tables
         from app.models.base import Base
         from app.models import User, Company, InventoryItem, Reconciliation, Discrepancy, Connection, SyncLog
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-        # Add owner_id column to companies if it doesn't exist (migration)
+        # Add missing columns to existing tables (migrations)
         async with engine.begin() as conn:
             await conn.execute(text("""
                 DO $$ BEGIN
                     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='companies' AND column_name='owner_id') THEN
                         ALTER TABLE companies ADD COLUMN owner_id UUID NOT NULL DEFAULT gen_random_uuid();
                     END IF;
-                END $$;
-            """))
-
-        # Create a bypass role for admin operations (health checks, migrations)
-        async with engine.begin() as conn:
-            await conn.execute(text("""
-                DO $$ BEGIN
-                    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'rls_bypass') THEN
-                        CREATE ROLE rls_bypass;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='inventory_items' AND column_name='source_connection_id') THEN
+                        ALTER TABLE inventory_items ADD COLUMN source_connection_id VARCHAR;
                     END IF;
                 END $$;
             """))
 
-        # Apply Row-Level Security policies
-        from app.core.rls import apply_rls_policies
-        from sqlalchemy.ext.asyncio import AsyncSession
-        from sqlalchemy.orm import sessionmaker
-        Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-        async with Session() as db:
-            # Temporarily disable RLS for migration setup
-            await db.execute(text("SET row_security = off"))
-            await apply_rls_policies(db)
-            await db.execute(text("SET row_security = on"))
-
-        return {"status": "ok", "message": "All tables created, RLS policies applied"}
+        return {"status": "ok", "message": "All tables created, migrations applied"}
     except Exception as e:
         return {"status": "error", "detail": str(e)}
