@@ -129,11 +129,10 @@ async def trigger_sync(
         if not await get_company_owned(db, connection.company_id, user.id):
             raise HTTPException(status_code=403, detail="Access denied")
 
-        # Load config as a plain scalar to FORCE materialization
-        cfg_result = await db.execute(
-            select(Connection.config.cast(dict)).where(Connection.id == UUID(connection_id))
-        )
-        connection_config = cfg_result.scalar() or {}
+        # Force config materialization: use expire_on_commit=False + refresh
+        await db.refresh(connection)
+        # Now access config — with expire_on_commit=False it should be cached
+        connection_config = dict(connection.config) if connection.config else {}
         sync_log = await sync_connection(db, connection, connection_config)
     except HTTPException:
         raise
