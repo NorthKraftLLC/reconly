@@ -104,7 +104,7 @@ async def run_migrations():
         engine = get_engine()
         # Create all tables directly
         from app.models.base import Base
-        from app.models import User, Company, InventoryItem, Reconciliation, Discrepancy
+        from app.models import User, Company, InventoryItem, Reconciliation, Discrepancy, Connection, SyncLog
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         return {"status": "ok", "message": "All tables created"}

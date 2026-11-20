@@ -9,6 +9,7 @@ const navItems = [
   { path: '/', label: 'Dashboard', icon: '◆' },
   { path: '/companies', label: 'Companies', icon: '◈' },
   { path: '/inventory', label: 'Inventory', icon: '▪' },
+  { path: '/connections', label: 'Connections', icon: '🔗' },
   { path: '/reconciliations', label: 'Reconciliations', icon: '⬡' },
 ];
 

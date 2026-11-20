@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import ConnectionsPage from './pages/ConnectionsPage';
 import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
 import CompaniesPage from './pages/CompaniesPage';
@@ -20,6 +21,7 @@ function AppRoutes() {
         <Route path="/inventory" element={<ProtectedRoute><InventoryPage /></ProtectedRoute>} />
         <Route path="/reconciliations" element={<ProtectedRoute><ReconciliationPage /></ProtectedRoute>} />
         <Route path="/reconciliations/:id" element={<ProtectedRoute><ReconciliationDetailPage /></ProtectedRoute>} />
+        <Route path="/connections" element={<ProtectedRoute><ConnectionsPage /></ProtectedRoute>} />
         <Route path="/login" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
