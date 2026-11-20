@@ -129,17 +129,14 @@ async def trigger_sync(
         if not await get_company_owned(db, connection.company_id, user.id):
             raise HTTPException(status_code=403, detail="Access denied")
 
-        # Bypass SQLAlchemy entirely: read config via raw asyncpg cursor
-        from app.db.session import get_engine
-        engine = get_engine()
-        async with engine.connect() as raw_conn:
-            from sqlalchemy import text as _text
-            result = await raw_conn.execute(
-                _text("SELECT config FROM connections WHERE id = :id"),
-                {"id": str(UUID(connection_id))}
-            )
-            row = result.fetchone()
-            connection_config = dict(row[0]) if row and row[0] else {}
+        # Read config from the SAME session (RLS-aware) using a fresh scalar query
+        cfg_row = await db.execute(
+            select(Connection.config).where(Connection.id == UUID(connection_id))
+        )
+        raw_cfg = cfg_row.one()  # Returns the JSON dict directly from the column
+        # Force materialization: json round-trip
+        import json as _json
+        connection_config = _json.loads(_json.dumps(raw_cfg)) if raw_cfg else {}
         sync_log = await sync_connection(db, connection, connection_config)
     except HTTPException:
         raise
