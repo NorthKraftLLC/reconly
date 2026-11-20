@@ -424,7 +424,7 @@ def get_connector(connection_type: ConnectionType) -> BaseConnector:
     return cls()
 
 
-async def sync_connection(db: AsyncSession, connection: Connection) -> SyncLog:
+async def sync_connection(db: AsyncSession, connection: Connection, config_override: dict = None) -> SyncLog:
     """Execute a full sync: fetch data from source, normalize, upsert inventory items."""
     sync_log = SyncLog(
         connection_id=connection.id,
@@ -437,7 +437,11 @@ async def sync_connection(db: AsyncSession, connection: Connection) -> SyncLog:
     try:
         connector = get_connector(connection.connection_type)
         logger.info(f"Fetching inventory from connection {connection.id}, type={connection.connection_type}")
-        raw_items = await connector.fetch_inventory(connection)
+        # For CSV imports, use the pre-loaded config to avoid SQLAlchemy async JSON issues
+        if connection.connection_type == ConnectionType.CSV_IMPORT and config_override:
+            raw_items = list(config_override.get("csv_data", []))
+        else:
+            raw_items = await connector.fetch_inventory(connection)
         logger.info(f"Fetched {len(raw_items)} raw items")
         normalized = connector.normalize_items(raw_items)
         logger.info(f"Normalized {len(normalized)} items")
