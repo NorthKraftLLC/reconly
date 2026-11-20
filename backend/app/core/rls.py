@@ -74,5 +74,9 @@ CREATE POLICY discrepancies_by_company ON discrepancies
 
 async def apply_rls_policies(db):
     """Apply RLS policies to the database. Call during migration."""
-    async with db.begin():
-        await db.execute(text(RLS_POLICIES_SQL))
+    # Execute each statement individually to avoid transaction conflicts
+    statements = RLS_POLICIES_SQL.split(";")
+    for stmt in statements:
+        stmt = stmt.strip()
+        if stmt:
+            await db.execute(text(stmt + ";"))
