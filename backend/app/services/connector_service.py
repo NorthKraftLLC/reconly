@@ -435,13 +435,26 @@ async def sync_connection(db: AsyncSession, connection: Connection, config_overr
     await db.flush()
 
     try:
-        # CRITICAL: materialize connection_type enum value from SQLAlchemy async proxy
-        conn_type = connection.connection_type.value if hasattr(connection.connection_type, 'value') else connection.connection_type
-        connector = get_connector(conn_type)
-        logger.info(f"[1] Fetching from connection {connection.id}, type={conn_type}")
-        logger.info(f"[1] config_override type={type(config_override)}, keys={list(config_override.keys()) if isinstance(config_override, dict) else 'N/A'}")
-        # For CSV imports, use the pre-loaded config to avoid SQLAlchemy async JSON issues
-        if conn_type == ConnectionType.CSV_IMPORT and config_override:
+        # Bypass enum entirely: get type as string, map to connector class directly
+        type_str = str(connection.connection_type)  # Force string conversion
+        # Map string to connector class
+        TYPE_TO_CLASS = {
+            "csv_import": CSVConnector,
+            "shopify": ShopifyConnector,
+            "square": SquareConnector,
+            "quickbooks": QuickBooksConnector,
+            "woocommerce": WooCommerceConnector,
+            "custom_api": CustomAPIConnector,
+            "google_sheets": GoogleSheetsConnector,
+        }
+        connector_cls = TYPE_TO_CLASS.get(type_str)
+        if not connector_cls:
+            raise ValueError(f"Unknown connection type: {type_str}")
+        connector = connector_cls()
+        logger.info(f"[1] Fetching from connection {connection.id}, type={type_str}, cls={connector_cls.__name__}")
+        logger.info(f"[1] config_override keys={list(config_override.keys()) if isinstance(config_override, dict) else 'N/A'}")
+        # For CSV imports, use the pre-loaded config
+        if type_str == "csv_import" and config_override:
             raw_items = list(config_override.get("csv_data", []))
         else:
             raw_items = await connector.fetch_inventory(connection)
