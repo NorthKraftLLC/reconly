@@ -126,8 +126,14 @@ async def trigger_sync(
     if not connection:
         raise HTTPException(status_code=404, detail="Connection not found")
 
-    # Force-load config as plain dict to avoid SQLAlchemy async JSON proxy issues
-    connection_config = dict(connection.config) if connection.config else {}
+    # Read config directly via raw SQL to bypass SQLAlchemy async JSON issues
+    from sqlalchemy import text as sql_text
+    config_result = await db.execute(
+        sql_text("SELECT config::json FROM connections WHERE id = :id"),
+        {"id": str(conn_uuid)}
+    )
+    config_row = config_result.fetchone()
+    connection_config = config_row[0] if config_row and config_row[0] else {}
     sync_log = await sync_connection(db, connection, connection_config)
     log_event(str(user.id), "sync_connection", connection_id, sync_log.status.value)
     return {
