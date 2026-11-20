@@ -436,18 +436,20 @@ async def sync_connection(db: AsyncSession, connection: Connection, config_overr
 
     try:
         connector = get_connector(connection.connection_type)
-        logger.info(f"Fetching inventory from connection {connection.id}, type={connection.connection_type}")
+        logger.info(f"[1] Fetching from connection {connection.id}, type={connection.connection_type}")
+        logger.info(f"[1] config_override type={type(config_override)}, keys={list(config_override.keys()) if isinstance(config_override, dict) else 'N/A'}")
         # For CSV imports, use the pre-loaded config to avoid SQLAlchemy async JSON issues
         if connection.connection_type == ConnectionType.CSV_IMPORT and config_override:
             raw_items = list(config_override.get("csv_data", []))
         else:
             raw_items = await connector.fetch_inventory(connection)
-        logger.info(f"Fetched {len(raw_items)} raw items")
+        logger.info(f"[2] Fetched {len(raw_items)} raw items")
         normalized = connector.normalize_items(raw_items)
-        logger.info(f"Normalized {len(normalized)} items")
+        logger.info(f"[3] Normalized {len(normalized)} items")
 
         sync_log.items_fetched = len(raw_items)
         sync_log.raw_data_preview = raw_items[:5] if raw_items else None
+        logger.info(f"[4] items_fetched set, entering upsert")
 
         # Upsert inventory items
         imported = 0
@@ -455,8 +457,9 @@ async def sync_connection(db: AsyncSession, connection: Connection, config_overr
         failed = 0
 
         logger.info(f"Starting upsert loop, company_id={connection.company_id}")
-        for item in normalized:
+        for idx, item in enumerate(normalized):
             try:
+                logger.info(f"Processing item {idx}: sku={item.get('sku')}")
                 # Check if item exists by SKU + company
                 existing = await db.execute(
                     select(InventoryItem).where(
@@ -464,7 +467,9 @@ async def sync_connection(db: AsyncSession, connection: Connection, config_overr
                         InventoryItem.company_id == connection.company_id,
                     )
                 )
+                logger.info(f"Query result type: {type(existing)}")
                 existing_item = existing.scalar_one_or_none()
+                logger.info(f"Existing item: {existing_item}")
 
                 if existing_item:
                     existing_item.quantity_on_hand = item["quantity"]
@@ -474,6 +479,7 @@ async def sync_connection(db: AsyncSession, connection: Connection, config_overr
                     existing_item.source_connection_id = str(connection.id)
                     updated += 1
                 else:
+                    logger.info(f"Creating new item: {item['sku']}")
                     new_item = InventoryItem(
                         company_id=connection.company_id,
                         name=item["name"],
@@ -486,7 +492,7 @@ async def sync_connection(db: AsyncSession, connection: Connection, config_overr
                     db.add(new_item)
                     imported += 1
             except Exception as e:
-                logger.error(f"Failed to import item {item.get('sku')}: {e}")
+                logger.error(f"Failed to import item {idx} {item.get('sku')}: {type(e).__name__}: {e}")
                 failed += 1
 
         sync_log.items_imported = imported
@@ -503,9 +509,11 @@ async def sync_connection(db: AsyncSession, connection: Connection, config_overr
         return sync_log
 
     except Exception as e:
-        logger.error(f"Sync failed for connection {connection.id}: {e}")
+        import traceback
+        tb = traceback.format_exc()
+        logger.error(f"Sync failed for connection {connection.id}: {e}\n{tb}")
         sync_log.status = SyncStatus.FAILED
-        sync_log.error_message = str(e)[:2000]
+        sync_log.error_message = f"{type(e).__name__}: {e}\n\n{tb}"[:4000]
         sync_log.completed_at = datetime.now(UTC).isoformat()
         connection.last_sync_status = "failed"
         return sync_log  # Return so get_async_session auto-commits the failure
