@@ -493,7 +493,6 @@ async def sync_connection(db: AsyncSession, connection: Connection) -> SyncLog:
         connection.last_sync_status = sync_log.status.value
         connection.items_count = imported + updated
 
-        await db.commit()
         return sync_log
 
     except Exception as e:
@@ -502,5 +501,4 @@ async def sync_connection(db: AsyncSession, connection: Connection) -> SyncLog:
         sync_log.error_message = str(e)[:2000]
         sync_log.completed_at = datetime.now(UTC).isoformat()
         connection.last_sync_status = "failed"
-        await db.commit()
-        return sync_log
+        return sync_log  # Return so get_async_session auto-commits the failure

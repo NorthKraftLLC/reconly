@@ -1,5 +1,6 @@
 """Integrations/Connections router for managing data sources."""
 
+import json as json_mod
 import logging
 from uuid import UUID
 
@@ -21,6 +22,7 @@ from app.services.connector_service import (
 )
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/types")
@@ -39,17 +41,11 @@ async def get_connector_types():
 @router.get("/")
 async def list_connections(db: AsyncSession = Depends(get_async_session), user: User = Depends(get_current_user)):
     """List all connections for the current user's companies."""
-    user_companies = await db.execute(
-        select(Connection).where(Connection.company_id.in_(
-            select(Connection.company_id).distinct()
-        ))
-    )
-    # Filter by user's companies via their ownership
     connections = await db.execute(select(Connection).order_by(Connection.created_at.desc()))
     return connections.scalars().all()
 
 
-@router.post("/", response_model=dict)
+@router.post("/")
 async def create_connection(
     name: str = Form(...),
     connection_type: str = Form(...),
@@ -61,8 +57,6 @@ async def create_connection(
     user: User = Depends(get_current_user),
 ):
     """Create a new data source connection."""
-    import json as json_mod
-
     try:
         conn_type = ConnectionType(connection_type)
         conn_role = ConnectionRole(role)
@@ -81,7 +75,7 @@ async def create_connection(
         config=cfg,
     )
     db.add(connection)
-    await db.commit()
+    # No explicit commit — get_async_session auto-commits
     await db.refresh(connection)
     log_event(str(user.id), "create_connection", str(connection.id), "success")
     return {"id": str(connection.id), "name": connection.name, "type": connection.connection_type.value, "role": connection.role.value}
@@ -94,13 +88,11 @@ async def test_connection(
     user: User = Depends(get_current_user),
 ):
     """Test if a connection's credentials are valid."""
-    conn_uuid = UUID(connection_id)
-    conn = await db.execute(select(Connection).where(Connection.id == conn_uuid))
+    conn = await db.execute(select(Connection).where(Connection.id == UUID(connection_id)))
     connection = conn.scalar_one_or_none()
     if not connection:
         raise HTTPException(status_code=404, detail="Connection not found")
 
-    logger.info(f"Testing connection {connection.id}, type={connection.connection_type}, config_keys={list(connection.config.keys())}")
     connector = get_connector(connection.connection_type)
     result = await connector.test_connection(connection.credentials, connection.config)
     return {"ok": result["ok"], "message": result["message"], "detail": result.get("detail")}
@@ -113,13 +105,11 @@ async def trigger_sync(
     user: User = Depends(get_current_user),
 ):
     """Trigger a manual sync for a connection."""
-    conn_uuid = UUID(connection_id)
-    conn = await db.execute(select(Connection).where(Connection.id == conn_uuid))
+    conn = await db.execute(select(Connection).where(Connection.id == UUID(connection_id)))
     connection = conn.scalar_one_or_none()
     if not connection:
         raise HTTPException(status_code=404, detail="Connection not found")
 
-    logger.info(f"Syncing connection {connection.id}, config has csv_data: {'csv_data' in (connection.config or {})}, csv_data len: {len(connection.config.get('csv_data', [])) if connection.config else 0}")
     sync_log = await sync_connection(db, connection)
     log_event(str(user.id), "sync_connection", connection_id, sync_log.status.value)
     return {
@@ -141,8 +131,7 @@ async def upload_csv(
     user: User = Depends(get_current_user),
 ):
     """Upload a CSV file to a CSV import connection."""
-    conn_uuid = UUID(connection_id)
-    conn = await db.execute(select(Connection).where(Connection.id == conn_uuid))
+    conn = await db.execute(select(Connection).where(Connection.id == UUID(connection_id)))
     connection = conn.scalar_one_or_none()
     if not connection:
         raise HTTPException(status_code=404, detail="Connection not found")
@@ -155,9 +144,7 @@ async def upload_csv(
     current_config["csv_data"] = items
     current_config["filename"] = file.filename or "upload.csv"
     connection.config = current_config
-    await db.commit()
-    logger.info(f"CSV uploaded to connection {connection.id}: {len(items)} items")
-
+    # No explicit commit — get_async_session auto-commits after this function returns
     return {"items_parsed": len(items), "preview": items[:5]}
 
 
@@ -171,7 +158,7 @@ async def get_sync_history(
     """Get sync history for a connection."""
     logs = await db.execute(
         select(SyncLog)
-        .where(SyncLog.connection_id == connection_id)
+        .where(SyncLog.connection_id == UUID(connection_id))
         .order_by(SyncLog.started_at.desc())
         .limit(limit)
     )
@@ -198,12 +185,11 @@ async def delete_connection(
     user: User = Depends(get_current_user),
 ):
     """Delete a connection."""
-    conn_uuid = UUID(connection_id)
-    conn = await db.execute(select(Connection).where(Connection.id == conn_uuid))
+    conn = await db.execute(select(Connection).where(Connection.id == UUID(connection_id)))
     connection = conn.scalar_one_or_none()
     if not connection:
         raise HTTPException(status_code=404, detail="Connection not found")
     await db.delete(connection)
-    await db.commit()
+    # No explicit commit — get_async_session auto-commits
     log_event(str(user.id), "delete_connection", connection_id, "success")
     return {"deleted": True}
