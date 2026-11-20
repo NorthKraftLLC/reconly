@@ -424,8 +424,8 @@ def get_connector(connection_type: ConnectionType) -> BaseConnector:
 async def sync_connection(db: AsyncSession, connection: Connection) -> SyncLog:
     """Execute a full sync: fetch data from source, normalize, upsert inventory items."""
     sync_log = SyncLog(
-        connection_id=str(connection.id),
-        company_id=str(connection.company_id),
+        connection_id=connection.id,
+        company_id=connection.company_id,
         status=SyncStatus.IN_PROGRESS,
     )
     db.add(sync_log)

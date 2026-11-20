@@ -28,5 +28,3 @@ class InventoryItem(UUIDMixin, TimestampMixin, Base):
     reorder_level: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     source_connection_id: Mapped[str | None] = mapped_column(String, nullable=True)
-    quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    unit_price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0.0)
