@@ -1,0 +1,386 @@
+{
+  "businesses": [
+    {
+      "name": "North Kraft Manufacturing",
+      "industry": "Retail",
+      "items": [
+        {
+          "sku": "NOR-0000",
+          "name": "Product A",
+          "quantity": 273,
+          "price": 13.21,
+          "category": "Finished Goods"
+        },
+        {
+          "sku": "NOR-0001",
+          "name": "Product B",
+          "quantity": 362,
+          "price": 85.79,
+          "category": "Finished Goods"
+        },
+        {
+          "sku": "NOR-0002",
+          "name": "Product C",
+          "quantity": 140,
+          "price": 148.95,
+          "category": "Finished Goods"
+        },
+        {
+          "sku": "NOR-0003",
+          "name": "Product D",
+          "quantity": 497,
+          "price": 77.36,
+          "category": "Finished Goods"
+        },
+        {
+          "sku": "NOR-0004",
+          "name": "Product E",
+          "quantity": 484,
+          "price": 122.68,
+          "category": "Finished Goods"
+        }
+      ]
+    },
+    {
+      "name": "Summit Retail Group",
+      "industry": "Manufacturing",
+      "items": [
+        {
+          "sku": "SUM-0000",
+          "name": "Product A",
+          "quantity": 108,
+          "price": 44.14,
+          "category": "Components"
+        },
+        {
+          "sku": "SUM-0001",
+          "name": "Product B",
+          "quantity": 415,
+          "price": 98.55,
+          "category": "Components"
+        },
+        {
+          "sku": "SUM-0002",
+          "name": "Product C",
+          "quantity": 336,
+          "price": 33.54,
+          "category": "Finished Goods"
+        },
+        {
+          "sku": "SUM-0003",
+          "name": "Product D",
+          "quantity": 360,
+          "price": 141.07,
+          "category": "Components"
+        },
+        {
+          "sku": "SUM-0004",
+          "name": "Product E",
+          "quantity": 354,
+          "price": 108.94,
+          "category": "Components"
+        }
+      ]
+    },
+    {
+      "name": "Coastal Supply Co",
+      "industry": "Distribution",
+      "items": [
+        {
+          "sku": "COA-0000",
+          "name": "Product A",
+          "quantity": 330,
+          "price": 52.07,
+          "category": "Finished Goods"
+        },
+        {
+          "sku": "COA-0001",
+          "name": "Product B",
+          "quantity": 126,
+          "price": 125.6,
+          "category": "Finished Goods"
+        },
+        {
+          "sku": "COA-0002",
+          "name": "Product C",
+          "quantity": 327,
+          "price": 194.59,
+          "category": "Components"
+        },
+        {
+          "sku": "COA-0003",
+          "name": "Product D",
+          "quantity": 491,
+          "price": 80.17,
+          "category": "Components"
+        },
+        {
+          "sku": "COA-0004",
+          "name": "Product E",
+          "quantity": 228,
+          "price": 190.11,
+          "category": "Components"
+        }
+      ]
+    },
+    {
+      "name": "Pinnacle Foods Inc",
+      "industry": "Distribution",
+      "items": [
+        {
+          "sku": "PIN-0000",
+          "name": "Product A",
+          "quantity": 130,
+          "price": 146.54,
+          "category": "Components"
+        },
+        {
+          "sku": "PIN-0001",
+          "name": "Product B",
+          "quantity": 207,
+          "price": 94.32,
+          "category": "Components"
+        },
+        {
+          "sku": "PIN-0002",
+          "name": "Product C",
+          "quantity": 261,
+          "price": 37.04,
+          "category": "Raw Materials"
+        },
+        {
+          "sku": "PIN-0003",
+          "name": "Product D",
+          "quantity": 304,
+          "price": 10.39,
+          "category": "Finished Goods"
+        },
+        {
+          "sku": "PIN-0004",
+          "name": "Product E",
+          "quantity": 253,
+          "price": 22.36,
+          "category": "Finished Goods"
+        }
+      ]
+    },
+    {
+      "name": "Heritage Hardware",
+      "industry": "Distribution",
+      "items": [
+        {
+          "sku": "HER-0000",
+          "name": "Product A",
+          "quantity": 199,
+          "price": 65.9,
+          "category": "Finished Goods"
+        },
+        {
+          "sku": "HER-0001",
+          "name": "Product B",
+          "quantity": 172,
+          "price": 79.2,
+          "category": "Raw Materials"
+        },
+        {
+          "sku": "HER-0002",
+          "name": "Product C",
+          "quantity": 89,
+          "price": 83.2,
+          "category": "Finished Goods"
+        },
+        {
+          "sku": "HER-0003",
+          "name": "Product D",
+          "quantity": 464,
+          "price": 136.64,
+          "category": "Components"
+        },
+        {
+          "sku": "HER-0004",
+          "name": "Product E",
+          "quantity": 435,
+          "price": 97.93,
+          "category": "Raw Materials"
+        }
+      ]
+    }
+  ],
+  "suppliers": [
+    {
+      "business": "North Kraft Manufacturing",
+      "reports": [
+        {
+          "sku": "NOR-0000",
+          "system_qty": 273,
+          "supplier_qty": 262,
+          "discrepancy": -11
+        },
+        {
+          "sku": "NOR-0001",
+          "system_qty": 362,
+          "supplier_qty": 346,
+          "discrepancy": -16
+        },
+        {
+          "sku": "NOR-0002",
+          "system_qty": 140,
+          "supplier_qty": 169,
+          "discrepancy": 29
+        },
+        {
+          "sku": "NOR-0003",
+          "system_qty": 497,
+          "supplier_qty": 521,
+          "discrepancy": 24
+        },
+        {
+          "sku": "NOR-0004",
+          "system_qty": 484,
+          "supplier_qty": 473,
+          "discrepancy": -11
+        }
+      ]
+    },
+    {
+      "business": "Summit Retail Group",
+      "reports": [
+        {
+          "sku": "SUM-0000",
+          "system_qty": 108,
+          "supplier_qty": 105,
+          "discrepancy": -3
+        },
+        {
+          "sku": "SUM-0001",
+          "system_qty": 415,
+          "supplier_qty": 411,
+          "discrepancy": -4
+        },
+        {
+          "sku": "SUM-0002",
+          "system_qty": 336,
+          "supplier_qty": 336,
+          "discrepancy": 0
+        },
+        {
+          "sku": "SUM-0003",
+          "system_qty": 360,
+          "supplier_qty": 369,
+          "discrepancy": 9
+        },
+        {
+          "sku": "SUM-0004",
+          "system_qty": 354,
+          "supplier_qty": 331,
+          "discrepancy": -23
+        }
+      ]
+    },
+    {
+      "business": "Coastal Supply Co",
+      "reports": [
+        {
+          "sku": "COA-0000",
+          "system_qty": 330,
+          "supplier_qty": 308,
+          "discrepancy": -22
+        },
+        {
+          "sku": "COA-0001",
+          "system_qty": 126,
+          "supplier_qty": 108,
+          "discrepancy": -18
+        },
+        {
+          "sku": "COA-0002",
+          "system_qty": 327,
+          "supplier_qty": 334,
+          "discrepancy": 7
+        },
+        {
+          "sku": "COA-0003",
+          "system_qty": 491,
+          "supplier_qty": 500,
+          "discrepancy": 9
+        },
+        {
+          "sku": "COA-0004",
+          "system_qty": 228,
+          "supplier_qty": 254,
+          "discrepancy": 26
+        }
+      ]
+    },
+    {
+      "business": "Pinnacle Foods Inc",
+      "reports": [
+        {
+          "sku": "PIN-0000",
+          "system_qty": 130,
+          "supplier_qty": 111,
+          "discrepancy": -19
+        },
+        {
+          "sku": "PIN-0001",
+          "system_qty": 207,
+          "supplier_qty": 224,
+          "discrepancy": 17
+        },
+        {
+          "sku": "PIN-0002",
+          "system_qty": 261,
+          "supplier_qty": 249,
+          "discrepancy": -12
+        },
+        {
+          "sku": "PIN-0003",
+          "system_qty": 304,
+          "supplier_qty": 325,
+          "discrepancy": 21
+        },
+        {
+          "sku": "PIN-0004",
+          "system_qty": 253,
+          "supplier_qty": 251,
+          "discrepancy": -2
+        }
+      ]
+    },
+    {
+      "business": "Heritage Hardware",
+      "reports": [
+        {
+          "sku": "HER-0000",
+          "system_qty": 199,
+          "supplier_qty": 193,
+          "discrepancy": -6
+        },
+        {
+          "sku": "HER-0001",
+          "system_qty": 172,
+          "supplier_qty": 178,
+          "discrepancy": 6
+        },
+        {
+          "sku": "HER-0002",
+          "system_qty": 89,
+          "supplier_qty": 98,
+          "discrepancy": 9
+        },
+        {
+          "sku": "HER-0003",
+          "system_qty": 464,
+          "supplier_qty": 457,
+          "discrepancy": -7
+        },
+        {
+          "sku": "HER-0004",
+          "system_qty": 435,
+          "supplier_qty": 422,
+          "discrepancy": -13
+        }
+      ]
+    }
+  ]
+}
